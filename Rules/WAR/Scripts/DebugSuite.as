@@ -54,6 +54,20 @@ void p(string title, string toPrint){
 	print(title + ": " + toPrint);
 }
 
+void p(bool boolean){
+	if(boolean)
+		print("true");
+	else
+		print("false");
+}
+
+void p(string title, bool boolean){
+	if(boolean)
+		print(title + ": true");
+	else
+		print(title + ": false");
+}
+
 void c(CBlob@ blob){
 	client_AddToChat(blob.getName());
 }

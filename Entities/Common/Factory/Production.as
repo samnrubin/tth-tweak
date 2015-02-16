@@ -9,6 +9,7 @@
 #include "CrateCommon.as";
 #include "MakeFood.as";
 #include "MakeSeed.as";
+#include "MakeCrate.as";
 #include "FireParticle.as";
 #include "DebugSuite.as";
 
@@ -53,7 +54,7 @@ void onTick( CBlob@ this )
 
 		if (item.producing)
 		{  				   				
-			item.inStock = false; //hasLimitReached( this, item );
+			item.inStock = hasLimitReached( this, item );
 			bool reqs = hasRequirements_Tech( this.getInventory(), item.requirements, item.requirementsMissing );
 			item.hasRequirements = reqs;
 			item.inProductionNow = !item.inStock && item.hasRequirements;
@@ -380,6 +381,8 @@ void onCommand( CBlob@ this, u8 cmd, CBitStream @params )
 					const u32 cost = params.read_u32();
 					const string item_name = params.read_string();
 					const string item = params.read_string();
+					const bool inCrate = params.read_bool();
+
 					CBlob@ caller = getBlobByNetworkID( callerID );
 					//p("buy item", item_mat);
 
@@ -392,27 +395,24 @@ void onCommand( CBlob@ this, u8 cmd, CBitStream @params )
 							//caller.TakeBlob("mat_gold", coinCount * EXCHANGE_COST);
 							caller.getPlayer().server_setCoins(caller.getPlayer().getCoins() - cost);
 							
-							CBlob@ blob = server_CreateBlobNoInit( item );
-							if (blob !is null) 
-							{
-								Vec2f spawnPos = this.getPosition() + getRandomVelocity( 90.0f, 6.0f, 360.0f );
-								if (this.exists("production offset"))
-									spawnPos += this.get_Vec2f("production offset");
-
-								blob.server_setTeamNum( this.getTeamNum() );
-								blob.setPosition( spawnPos );
-				
-								if (params.read_bool())
-								{
-									SetCratePacked( blob, item, params.read_string(), this.inventoryIconFrame );
-									blob.set_u16( "msg blob", this.getNetworkID() );
-								}
-				
-								blob.Init();
+							Vec2f spawnPos = this.getPosition() + getRandomVelocity( 90.0f, 6.0f, 360.0f );
+							if(inCrate){
+								server_MakeCrate(item, item_name, this.inventoryIconFrame, this.getTeamNum(), spawnPos);
 							}
+							else
+							{
+								CBlob@ blob = server_CreateBlobNoInit( item );
+								if (blob !is null) 
+								{
+									if (this.exists("production offset"))
+										spawnPos += this.get_Vec2f("production offset");
 
-							
+									blob.server_setTeamNum( this.getTeamNum() );
+									blob.setPosition( spawnPos );
 
+									blob.Init();
+								}
+							}
 							this.getSprite().PlaySound( "/ChaChing.ogg" );
 						}
 					}
@@ -548,7 +548,6 @@ u32 getCost(string item)
 		cost = 30;
 	}
 
-	p(cost);
 
 	return cost;
 		
